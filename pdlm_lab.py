@@ -16,18 +16,20 @@ class PdlmData:
     # angleRange = 0
 
     def avgPeriod(self):
-        trLen = len(self.trials)
-        if trLen > 0:
+        try:
+            trLen = len(self.trials)
             trSum = sum(self.trials)
             trSum = trSum / self.periods
             trAvg = trSum / trLen
-        else:
+        except ZeroDivisionError:
             trAvg = 0
         return trAvg
 
     def stdError(self):
         tr = [x / self.periods for x in self.trials]
-        return stats.sem(tr)
+        trLen = len(self.trials)
+        dof = (trLen - 1) if trLen >= 2 else 1
+        return stats.sem(tr, ddof = dof)
 
 
 class PdlmDataSet:
@@ -107,25 +109,45 @@ class PdlmDataSet:
             plt.show()
             print("The plot has been successfully generated.")
 
-        return
-
     def add(self, option = 0):
-        print("You initiated a new data.")
+        print("You initiated a new row of data.")
         data = PdlmData()
-        length = input("Enter the length in cm: ")
-        data.length = float(length)
-        trials = input("Enter the trials in s, separate by \",\": ")
-        data.trials = list(map(float, trials.split(",")))
-        periods = input("Enter the number of periods: ")
-        data.periods = float(periods)
+        while True:
+            try:
+                length = input("Enter the length in cm: ")
+                data.length = float(length)
+                break
+            except ValueError:
+                print("Invalid input. Please try again.")
+        while True:
+            try:
+                trials = input("Enter the trials in s, separate by \",\": ")
+                data.trials = list(map(float, trials.split(",")))
+                break
+            except ValueError:
+                print("Invalid input. Please try again.")
+        while True:
+            try:
+                periods = input("Enter the number of periods: ")
+                data.periods = float(periods)
+                break
+            except ValueError:
+                print("Invalid input. Please try again.")
         # angleRange = input("Enter the angle range in degrees: ")
         # data.angleRange = angleRange
-        confirm = input("Do you want to add this data? (y/n) ")
-        if confirm == "y":
-            self.data.append(data)
-            print("Data has been saved.")
-        else:
-            print("Data not saved.")
+        while True:
+            try:
+                confirm = input("Do you want to add this data? (y/n) ")
+                if confirm == "y":
+                    self.data.append(data)
+                    print("Data has been saved.")
+                elif confirm == "n":
+                    print("Data not saved.")
+                else:
+                    raise Exception(1)
+                break
+            except Exception:
+                print("Invalid choice. Please try again.")
 
     def listFromData(self, option):
         list = []
@@ -141,15 +163,20 @@ class PdlmDataSet:
 
 def initiate():
     print("----Pendulum Lab Data Processing Tool by Jerry Yan----")
-    opt = input("Choose the following options: \n1 - Create a new data set \n2 - Open an existing data set \nYour choice: ")
-    if opt == "1":
-        newDataSet()
-    elif opt == "2":
-        openDataSet()
-    else:
-        print("ERROR")
-    return
-
+    while True:
+        opt = input("Choose the following options: \n1 - Create a new data set \n2 - Open an existing data set \nYour choice: ")
+        try:
+            if opt == "1":
+                newDataSet()
+            elif opt == "2":
+                openDataSet()
+            else:
+                raise Exception(1)
+            break
+        except Exception:
+            print("Invalid choice. Please try again.")
+        else:
+            print("Unknown error. Please try again.")
 
 def newDataSet():
     global set
@@ -166,16 +193,37 @@ def openDataSet():
 def addOrSave():
     global set
     global passAddOrSave
-    opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n3 - Save the data set and exit \nYour choice: ")
-    if opt == "1":
-        set.add()
-    elif opt == "21":
-        set.plot()
-    elif opt == "22":
-        set.plot(2)
-    elif opt == "3":
-        set.save()
-        passAddOrSave = True
+    while True:
+        try:
+            opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n3 - Save the data set \n0 - Exit the program \nYour choice: ")
+            if opt == "1":
+                set.add()
+            elif opt == "21":
+                set.plot()
+            elif opt == "22":
+                set.plot(2)
+            elif opt == "3":
+                set.save()
+            elif opt == "0":
+                while True:
+                    try:
+                        opt2 = input("Unsaved data will be losted. Are you sure to continue? (y/n) ")
+                        if opt2 == "y":
+                            passAddOrSave = True
+                        elif opt2 == "n":
+                            pass
+                        else:
+                            raise Exception(1)
+                        break
+                    except Exception:
+                        print("Invalid choice. Please try again.")
+            else:
+                raise Exception(1)
+            break
+        except Exception:
+            print("Invalid choice. Please try again.")
+        else:
+            print("Unknown error.")
 
 passAddOrSave = False
 
@@ -187,4 +235,3 @@ while passAddOrSave != True:
     addOrSave()
 
 print("Session ended.")
-# exit()
