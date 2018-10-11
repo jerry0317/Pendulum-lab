@@ -5,9 +5,11 @@
 
 import csv
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 import math
+
 
 class PdlmData:
     length = 0.0
@@ -29,14 +31,14 @@ class PdlmData:
         tr = [x / self.periods for x in self.trials]
         trLen = len(self.trials)
         dof = (trLen - 1) if trLen >= 2 else 1
-        return stats.sem(tr, ddof = dof)
+        return stats.sem(tr, ddof=dof)
 
 
 class PdlmDataSet:
     name = "Untitled"
     data = []
 
-    def __init__(self, name = "Untitled", open = False):
+    def __init__(self, name="Untitled", open=False):
         self.name = name
 
     def fileName(self):
@@ -47,7 +49,7 @@ class PdlmDataSet:
         csvFilePath = os.path.join(dirname, self.fileName())
         return csvFilePath
 
-    def openFrom(self, path = "DEFAULT"):
+    def openFrom(self, path="DEFAULT"):
         if path == "DEFAULT":
             csvPath = self.defaultFilePath()
 
@@ -64,8 +66,7 @@ class PdlmDataSet:
         print("The data set has been successfully loaded from CSV file.")
         return
 
-
-    def save(self, option = 0):
+    def save(self, option=0):
         csvFile = open(self.defaultFilePath(), "w")
 
         fileheader = ["length", "trials", "periods", "avgPeriod", "stdError"]
@@ -74,7 +75,8 @@ class PdlmDataSet:
         dict_writer.writeheader()
 
         for row in self.data:
-            dict_writer.writerow({"length": row.length, "trials": '; '.join(map(str, row.trials)), "periods": row.periods, "avgPeriod": round(row.avgPeriod(),5), "stdError": round(row.stdError(),5)})
+            dict_writer.writerow({"length": row.length, "trials": '; '.join(map(
+                str, row.trials)), "periods": row.periods, "avgPeriod": round(row.avgPeriod(), 5), "stdError": round(row.stdError(), 5)})
 
         csvFile.close()
         print("File has been successfully saved.")
@@ -83,16 +85,16 @@ class PdlmDataSet:
     def delete(self, index):
         return
 
-    def sortBy(self, sti = 1):
+    def sortBy(self, sti=1):
         return
 
-    def plot(self, option = 1):
+    def plot(self, option=1):
         if option == 1:
             x_data = self.listFromData("length")
             y_data = self.listFromData("avgPeriod")
             y_error = self.listFromData("stdError")
             plt.figure(1)
-            plt.errorbar(x_data, y_data, yerr=y_error, fmt='k.')
+            plt.errorbar(x_data, y_data, yerr=y_error, fmt='ko', markersize=4, elinewidth=1)
             plt.xlabel("Length(cm)")
             plt.ylabel("Period(s)")
             plt.title(self.name + ": Length vs Period")
@@ -101,15 +103,32 @@ class PdlmDataSet:
         elif option == 2:
             x_data = self.listFromData("sqrtLength")
             y_data = self.listFromData("avgPeriod")
+            y_error = self.listFromData("stdError")
             plt.figure(2)
-            plt.errorbar(x_data, y_data, fmt='k.')
+            plt.errorbar(x_data, y_data, fmt='ko', markersize=4)
             plt.xlabel("sqrt[Length](cm^1/2)")
             plt.ylabel("Period(s)")
             plt.title(self.name + ": sqrt[Length] vs Period")
             plt.show()
             print("The plot has been successfully generated.")
+        elif option == 3:
+            x_data = self.listFromData("sqrtLength")
+            y_data = self.listFromData("avgPeriod")
+            y_error = self.listFromData("stdError")
+            plt.figure(3)
+            lFit = np.polyfit(x_data, y_data, 1)
+            lFitP = np.poly1d(lFit)
+            xp = np.linspace(min(x_data), max(x_data), 100)
+            plt.errorbar(x_data, y_data, yerr=y_error, fmt='ko', markersize=4)
+            plt.plot(xp, lFitP(xp), '--', label = "y=" + str(round(lFit[1],4)) + "x+" + str(round(lFit[0],4)))
+            plt.xlabel("sqrt[Length](cm^1/2)")
+            plt.ylabel("Period(s)")
+            plt.title(self.name + ": sqrt[Length] vs Period w/ linear fit")
+            plt.legend(loc="upper left")
+            plt.show()
+            print("The plot has been successfully generated.")
 
-    def add(self, option = 0):
+    def add(self, option=0):
         print("You initiated a new row of data.")
         data = PdlmData()
         while True:
@@ -161,10 +180,12 @@ class PdlmDataSet:
             list = [math.sqrt(d.length) for d in self.data]
         return list
 
+
 def initiate():
     print("----Pendulum Lab Data Processing Tool by Jerry Yan----")
     while True:
-        opt = input("Choose the following options: \n1 - Create a new data set \n2 - Open an existing data set \nYour choice: ")
+        opt = input(
+            "Choose the following options: \n1 - Create a new data set \n2 - Open an existing data set \nYour choice: ")
         try:
             if opt == "1":
                 newDataSet()
@@ -195,19 +216,22 @@ def addOrSave():
     global passAddOrSave
     while True:
         try:
-            opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n3 - Save the data set \n0 - Exit the program \nYour choice: ")
+            opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n23 - Plot current data set with sqrt(l) vs T w/ linear fit\n3 - Save the data set \n0 - Exit the program \nYour choice: ")
             if opt == "1":
                 set.add()
             elif opt == "21":
-                set.plot()
+                set.plot(1)
             elif opt == "22":
                 set.plot(2)
+            elif opt == "23":
+                set.plot(3)
             elif opt == "3":
                 set.save()
             elif opt == "0":
                 while True:
                     try:
-                        opt2 = input("Unsaved data will be losted. Are you sure to continue? (y/n) ")
+                        opt2 = input(
+                            "Unsaved data will be losted. Are you sure to continue? (y/n) ")
                         if opt2 == "y":
                             passAddOrSave = True
                         elif opt2 == "n":
@@ -224,6 +248,7 @@ def addOrSave():
             print("Invalid choice. Please try again.")
         else:
             print("Unknown error.")
+
 
 passAddOrSave = False
 
