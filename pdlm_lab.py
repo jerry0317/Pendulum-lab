@@ -30,7 +30,7 @@ class PdlmData:
     def stdError(self):
         tr = [x / self.periods for x in self.trials]
         trLen = len(self.trials)
-        dof = (trLen - 1) if trLen >= 2 else 1
+        dof = 1 if trLen >= 2 else 0
         return stats.sem(tr, ddof=dof)
 
 
