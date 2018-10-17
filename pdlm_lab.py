@@ -99,7 +99,7 @@ class PdlmDataSet:
             plt.errorbar(x_data, y_data, yerr=y_error, fmt='ko', markersize=4, elinewidth=1)
             plt.xlabel("Length(cm)")
             plt.ylabel("Period(s)")
-            plt.title(self.name + ": Length vs Period")
+            # plt.title(self.name + ": Length vs Period")
             plt.show()
             print("The plot has been successfully generated.")
         elif option == 2:
@@ -112,7 +112,7 @@ class PdlmDataSet:
             plt.errorbar(x_data, y_data, fmt='ko', markersize=4)
             plt.xlabel("sqrt[Length](cm^1/2)")
             plt.ylabel("Period(s)")
-            plt.title(self.name + ": sqrt[Length] vs Period")
+            # plt.title(self.name + ": sqrt[Length] vs Period")
             plt.show()
             print("The plot has been successfully generated.")
         elif option == 3:
@@ -127,13 +127,13 @@ class PdlmDataSet:
             xp = np.linspace(min(x_data), max(x_data), 100)
             for i in range(0, len(x_data)-1):
                 if (y_data[i] - y_error[i]) < lFitP(x_data[i]) < (y_data[i] + y_error[i]):
-                    plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], fmt='go', markersize=4)
+                    plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], fmt='ko', markersize=4)
                 else:
-                    plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], fmt='ro', markersize=4)
+                    plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], fmt='ks', markersize=3)
             plt.plot(xp, lFitP(xp), '-', linewidth=1, label = "y=" + str(round(lFit[0],4)) + "x+" + str(round(lFit[1],4)))
             plt.xlabel("sqrt[Length](cm^1/2)")
             plt.ylabel("Period(s)")
-            plt.title(self.name + ": sqrt[Length] vs Period w/ linear fit")
+            # plt.title(self.name + ": sqrt[Length] vs Period w/ linear fit")
             plt.legend(loc="upper left")
             plt.show()
             print("The plot has been successfully generated.")
@@ -169,10 +169,25 @@ class PdlmDataSet:
             plt.plot(xp, lFitP(xp), '--', linewidth=1, label = "y=" + str(round(lFit[0],4)) + "x+" + str(round(lFit[1],4)))
             plt.xlabel("Number of cycles")
             plt.ylabel("Avg Time(s)")
-            plt.title(self.name + ": Number of cycles vs Avg Time w/ linear fit")
+            # plt.title(self.name + ": Number of cycles vs Avg Time w/ linear fit")
             plt.legend(loc="upper left")
             plt.show()
             print("The plot has been successfully generated.")
+
+    def calculate(self, option):
+        if option == 1:
+            x_data = self.listFromData("sqrtLength")
+            y_data = self.listFromData("avgPeriod")
+            lFit = np.polyfit(x_data, y_data, 1)
+            dataList = [4*math.pi**(2)*d.length/((d.avgPeriod()-lFit[1])**(2)) for d in self.data]
+            avg = sum(dataList) / len(dataList)
+            stdError = stats.sem(dataList, ddof=1)
+            tValue = stats.t.ppf(0.975, len(dataList) - 1)
+            CI = [avg - tValue * stdError, avg + tValue * stdError]
+            # print(dataList)
+            print("The estimated mean for g is " + str(round(avg,4)) + " with standard error " + str(round(stdError, 4)))
+            print("The 95 percent condidence interval is (" + str(round(CI[0],4)) + ", " + str(round(CI[1],4)) +").")
+
 
     def add(self, option=0):
         print("You initiated a new row of data.")
@@ -268,7 +283,7 @@ def addOrSave():
     global passAddOrSave
     while True:
         try:
-            opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n23 - Plot current data set with sqrt(l) vs T w/ linear fit\n24 - Plot current data set with sqrt(l) vs T w/ linear fit & correction\n41 - Plot current data set with Number of cycles vs Avg Time w/ linear fit\n3 - Save the data set \n0 - Exit the program \nYour choice: ")
+            opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n23 - Plot current data set with sqrt(l) vs T w/ linear fit\n24 - Plot current data set with sqrt(l) vs T w/ linear fit & correction\n41 - Plot current data set with Number of cycles vs Avg Time w/ linear fit\n51 - Calculate g with the data set w/ correction\n3 - Save the data set \n0 - Exit the program \nYour choice: ")
             if opt == "1":
                 set.add()
             elif opt == "21":
@@ -279,8 +294,10 @@ def addOrSave():
                 set.plot(3)
             elif opt == "24":
                 set.plot(4)
-            elif opt =="41":
+            elif opt == "41":
                 set.plot(11)
+            elif opt == "51":
+                set.calculate(1)
             elif opt == "3":
                 set.save()
             elif opt == "0":
