@@ -1,4 +1,4 @@
-#!/usr/bin/#!/usr/bin/env python3
+#!/usr/bin/env python3
 
 # Pendulum Lab Data Processing Tool
 # Copyright by Jerry Yan, 2018
@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 import math
+import chi2test as cst
 
 
 class PdlmData:
@@ -100,6 +101,11 @@ class PdlmDataSet:
             plt.xlabel("Length(cm)")
             plt.ylabel("Period(s)")
             # plt.title(self.name + ": Length vs Period")
+            lFit = np.polyfit(x_data, y_data, 1)
+            lFitP = np.poly1d(lFit)
+            y_std = self.listFromData("std")
+            csq = cst.chisquare(obs=y_data, exp=lFitP(x_data), std=y_std, ddof=2)
+            print("NOTE: The chi-squared statistic for the linear fit is " + str(round(csq[0],6)) + ", with the p-value " + str(round(csq[1], 5)) +".")
             plt.show()
             print("The plot has been successfully generated.")
         elif option == 2:
@@ -119,27 +125,34 @@ class PdlmDataSet:
             x_data = self.listFromData("sqrtLength")
             y_data = self.listFromData("avgPeriod")
             y_error = self.listFromData("stdError")
+            x_error = self.listFromData("sqrtLengthError")
             fig = plt.figure(3)
             ax = fig.add_subplot(111)
             ax.tick_params(axis="both", direction="in")
             lFit = np.polyfit(x_data, y_data, 1)
             lFitP = np.poly1d(lFit)
             xp = np.linspace(min(x_data), max(x_data), 100)
-            for i in range(0, len(x_data)-1):
-                if (y_data[i] - y_error[i]) < lFitP(x_data[i]) < (y_data[i] + y_error[i]):
-                    plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], fmt='ko', markersize=4)
-                else:
-                    plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], fmt='ks', markersize=3)
-            plt.plot(xp, lFitP(xp), '-', linewidth=1, label = "y=" + str(round(lFit[0],4)) + "x+" + str(round(lFit[1],4)))
-            plt.xlabel("sqrt[Length](cm^1/2)")
-            plt.ylabel("Period(s)")
+            # for i in range(0, len(x_data)-1):
+            #     if (y_data[i] - y_error[i]) < lFitP(x_data[i]) < (y_data[i] + y_error[i]):
+            #         plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], xerr=x_error[i], fmt='ko', markersize=4)
+            #     else:
+            #         plt.errorbar(x_data[i], y_data[i], yerr=y_error[i], xerr=x_error[i], fmt='ks', markersize=3)
+            plt.errorbar(x_data, y_data, yerr=y_error, xerr=x_error, fmt='ko', markersize=3)
+            plt.plot(xp, lFitP(xp), '-', linewidth=1, label = r"$T$=" + str(round(lFit[0],4)) + r"$\sqrt{l}$+" + str(round(lFit[1],4)))
+            plt.xlabel(r"Square Root of Length $\sqrt{l}$ ($\mathrm{cm}^{1/2}$)")
+            plt.ylabel(r"Period $T$ (s)")
             # plt.title(self.name + ": sqrt[Length] vs Period w/ linear fit")
             plt.legend(loc="upper left")
+            # csq = stats.chisquare(y_data, f_exp=lFitP(x_data))
+            y_std = self.listFromData("std")
+            csq = cst.chisquare(obs=y_data, exp=lFitP(x_data), std=y_std, ddof=2)
+            print("NOTE: The chi-squared statistic for the linear fit is " + str(round(csq[0],6)) + ", with the p-value " + str(round(csq[1], 5)) +".")
+            print("Linear Fit result: " + "y=" + str(round(lFit[0],9)) + "x+" + str(round(lFit[1],9)))
             plt.show()
             print("The plot has been successfully generated.")
         elif option == 4:
-            x_data = [math.sqrt(d) + 1.5 for d in self.listFromData("length")]
-            y_data = self.listFromData("avgPeriod")
+            x_data = self.listFromData("sqrtLength")
+            y_data = [d*(1-0.00761064) for d in self.listFromData("avgPeriod")] # Non-linear correction
             y_error = self.listFromData("stdError")
             fig = plt.figure(4)
             ax = fig.add_subplot(111)
@@ -153,6 +166,7 @@ class PdlmDataSet:
             plt.ylabel("Period(s)")
             plt.title(self.name + ": sqrt[Length] vs Period w/ linear fit & correction")
             plt.legend(loc="upper left")
+            print("Linear Fit result: " + "y=" + str(round(lFit[0],9)) + "x+" + str(round(lFit[1],9)))
             plt.show()
             print("The plot has been successfully generated.")
         elif option == 11:
@@ -171,6 +185,9 @@ class PdlmDataSet:
             plt.ylabel("Avg Time(s)")
             # plt.title(self.name + ": Number of cycles vs Avg Time w/ linear fit")
             plt.legend(loc="upper left")
+            y_std = self.listFromData("rawStdError")
+            csq = cst.chisquare(obs=y_data, exp=lFitP(x_data), std=y_std, ddof=2)
+            print("NOTE: The chi-squared statistic for the linear fit is " + str(round(csq[0],6)) + ", with the p-value " + str(round(csq[1], 5)) +".")
             plt.show()
             print("The plot has been successfully generated.")
 
@@ -186,7 +203,19 @@ class PdlmDataSet:
             CI = [avg - tValue * stdError, avg + tValue * stdError]
             # print(dataList)
             print("The estimated mean for g is " + str(round(avg,4)) + " with standard error " + str(round(stdError, 4)))
-            print("The 95 percent condidence interval is (" + str(round(CI[0],4)) + ", " + str(round(CI[1],4)) +").")
+            print("The 95 percent condidence interval is (" + str(round(CI[0],4)) + ", " + str(round(CI[1],4)) +") or " + str(round(avg,4)) + " +- " + str(round(tValue * stdError,4)) + ".")
+        if option == 2:
+            x_data = self.listFromData("sqrtLength")
+            y_data = [d*(1-0.00761064) for d in self.listFromData("avgPeriod")] # Non-linear correction
+            lFit = np.polyfit(x_data, y_data, 1)
+            dataList = [4*math.pi**(2)*d.length/((d.avgPeriod()-lFit[1])**(2)) for d in self.data]
+            avg = sum(dataList) / len(dataList)
+            stdError = stats.sem(dataList, ddof=1)
+            tValue = stats.t.ppf(0.975, len(dataList) - 1)
+            CI = [avg - tValue * stdError, avg + tValue * stdError]
+            # print(dataList)
+            print("The estimated mean for g is " + str(round(avg,4)) + " with standard error " + str(round(stdError, 4)))
+            print("The 95 percent condidence interval is (" + str(round(CI[0],4)) + ", " + str(round(CI[1],4)) +") or " + str(round(avg,4)) + " +- " + str(round(tValue * stdError,4)) + ".")
 
 
     def add(self, option=0):
@@ -245,6 +274,10 @@ class PdlmDataSet:
             list = [(d.avgPeriod() * d.periods) for d in self.data]
         elif option == "rawStdError":
             list = [(d.stdError() * d.periods) for d in self.data]
+        elif option == "std":
+            list = [np.std([t / d.periods for t in d.trials], ddof=1) for d in self.data]
+        elif option == "sqrtLengthError":
+            list = [((0.5 / d.length) * 0.5) * math.sqrt(d.length) for d in self.data]
         return list
 
 
@@ -283,7 +316,7 @@ def addOrSave():
     global passAddOrSave
     while True:
         try:
-            opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n23 - Plot current data set with sqrt(l) vs T w/ linear fit\n24 - Plot current data set with sqrt(l) vs T w/ linear fit & correction\n41 - Plot current data set with Number of cycles vs Avg Time w/ linear fit\n51 - Calculate g with the data set w/ correction\n3 - Save the data set \n0 - Exit the program \nYour choice: ")
+            opt = input("Choose the following options: \n1 - Add new data \n21 - Plot current data set with l vs T \n22 - Plot current data set with sqrt(l) vs T \n23 - Plot current data set with sqrt(l) vs T w/ linear fit\n24 - Plot current data set with sqrt(l) vs T w/ linear fit & correction\n41 - Plot current data set with Number of cycles vs Avg Time w/ linear fit\n51 - Calculate g with the data set\n52 - Calculate g with the data set w/ correction\n3 - Save the data set \n0 - Exit the program \nYour choice: ")
             if opt == "1":
                 set.add()
             elif opt == "21":
@@ -298,6 +331,8 @@ def addOrSave():
                 set.plot(11)
             elif opt == "51":
                 set.calculate(1)
+            elif opt == "52":
+                set.calculate(2)
             elif opt == "3":
                 set.save()
             elif opt == "0":
@@ -321,7 +356,6 @@ def addOrSave():
             print("Invalid choice. Please try again.")
         else:
             print("Unknown error.")
-
 
 passAddOrSave = False
 
